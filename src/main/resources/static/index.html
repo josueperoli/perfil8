@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f6f0df">
+    <title>Perfil 8 — Um jogo de pistas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+</head>
+<body>
+<div class="page-shell">
+    <header class="topbar">
+        <a class="brand" href="/" aria-label="Perfil 8 — início">
+            <span class="brand-mark">P<span>8</span></span>
+            <span class="brand-name">PERFIL <b>8</b></span>
+        </a>
+        <div class="host-status"><span class="status-dot"></span> APRESENTADO POR IA</div>
+        <div class="topbar-controls">
+            <button class="sound-toggle" id="sound-toggle" type="button" aria-pressed="true"
+                    aria-label="Desativar sons" title="Desativar sons">SOM: LIGADO</button>
+            <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false"
+                    aria-label="Ativar tema escuro" title="Ativar tema escuro">TEMA: CLARO</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="intro">
+            <div class="eyebrow"><span class="eyebrow-line"></span> UM JOGO DE PISTAS <span class="eyebrow-line"></span></div>
+            <h1>O que está<br><span>por trás da pista?</span></h1>
+            <p>Reúna seus amigos, decifre as pistas e veja quem conquista o topo do placar.</p>
+        </section>
+
+        <section class="setup-panel panel" id="setup-panel">
+            <div class="setup-copy">
+                <span class="section-kicker">SUA PRÓXIMA PARTIDA</span>
+                <h2>Quem vai encarar o desafio?</h2>
+                <p>Escolha seu avatar, descubra as pistas e avance no tabuleiro. No modo solo, são até 10 cartas; na competição, uma por jogador.</p>
+            </div>
+            <form id="new-game-form" class="setup-controls">
+                <label for="difficulty">Nível de desafio</label>
+                <div class="setup-row">
+                    <select id="difficulty" name="difficulty">
+                        <option value="FACIL">Fácil</option>
+                        <option value="MEDIO" selected>Médio</option>
+                        <option value="DIFICIL">Difícil</option>
+                        <option value="EXTREMO">Extremo</option>
+                    </select>
+                    <button class="button button-primary" type="submit">
+                        <span>Novo jogo</span><span class="button-arrow" aria-hidden="true">↗</span>
+                    </button>
+                </div>
+                <label class="solo-mode-toggle" for="solo-mode">
+                    <input id="solo-mode" name="solo-mode" type="checkbox">
+                    Jogar sozinho
+                </label>
+                <div class="player-fields" id="player-fields" aria-label="Participantes">
+                    <div class="player-input-row">
+                        <label for="player-1">Jogador 1</label>
+                        <input id="player-1" name="players" type="text" maxlength="30" autocomplete="off" value="Jogador 1" required>
+                        <button class="remove-player-button" type="button" aria-label="Remover Jogador 1">×</button>
+                    </div>
+                    <div class="player-input-row">
+                        <label for="player-2">Jogador 2</label>
+                        <input id="player-2" name="players" type="text" maxlength="30" autocomplete="off" value="Jogador 2" required>
+                        <button class="remove-player-button" type="button" aria-label="Remover Jogador 2">×</button>
+                    </div>
+                </div>
+                <button class="add-player-button" id="add-player-button" type="button">＋ Adicionar jogador</button>
+            </form>
+        </section>
+
+        <section class="handoff-panel panel" id="handoff-panel" hidden aria-live="polite">
+            <span class="section-kicker">PASSAGEM DE VEZ</span>
+            <div class="handoff-icon" aria-hidden="true">✦</div>
+            <h2>Agora é com <span id="handoff-player"></span></h2>
+            <p>Quando estiver pronto, comece sua rodada. Boa sorte!</p>
+            <button class="button button-primary" id="ready-button" type="button">Começar minha vez <span aria-hidden="true">↗</span></button>
+        </section>
+
+        <section class="board-panel panel" id="board-panel" hidden aria-live="polite">
+            <div class="board-header">
+                <div>
+                    <span class="section-kicker">CORRIDA DOS PERFIS</span>
+                    <h2 id="board-title">Tabuleiro da partida</h2>
+                    <p id="board-subtitle">Cada ponto vale uma casa. Quem cruza a linha de chegada?</p>
+                </div>
+                <div class="board-finish-badge"><span aria-hidden="true">🏁</span> CHEGADA · 200</div>
+            </div>
+            <div class="board-score-list" id="board-score-list" aria-label="Posição dos jogadores"></div>
+            <div class="board-scroll" tabindex="0" aria-label="Tabuleiro com 200 casas; role para percorrer">
+                <div class="board-track" id="board-track" role="img" aria-label="Tabuleiro da partida"></div>
+            </div>
+            <div class="board-legend">
+                <span><i class="legend-dot legend-current"></i> Jogador desta rodada</span>
+                <span><i class="legend-dot legend-checkpoint"></i> Marco de percurso</span>
+                <span><i class="legend-dot legend-finish"></i> Linha de chegada</span>
+            </div>
+            <button class="button button-primary board-continue-button" id="board-continue-button" type="button">
+                <span id="board-continue-label">Continuar</span> <span aria-hidden="true">↗</span>
+            </button>
+        </section>
+
+        <section class="game-layout" id="game-layout" hidden>
+            <div class="game-column">
+                <div class="turn-banner" aria-live="polite">
+                    <svg class="turn-avatar" id="turn-avatar" aria-hidden="true" viewBox="0 0 80 80"><use href="/avatars.svg#fox"></use></svg>
+                    <span>VEZ DE <strong id="current-player">JOGADOR</strong></span>
+                    <span class="turn-progress" id="turn-progress">JOGADOR 1 DE 2</span>
+                </div>
+                <div class="stats-row" aria-label="Placar da partida">
+                    <article class="stat-card">
+                        <span class="stat-label"><span class="stat-icon" aria-hidden="true">✦</span> PONTUAÇÃO</span>
+                        <strong id="score">0</strong>
+                        <span class="stat-note">pontos acumulados</span>
+                    </article>
+                    <article class="stat-card">
+                        <span class="stat-label"><span class="stat-icon" aria-hidden="true">◎</span> RODADA</span>
+                        <strong id="round">01</strong>
+                        <span class="stat-note" id="round-limit">de 10 rodadas</span>
+                    </article>
+                    <article class="stat-card difficulty-stat">
+                        <span class="stat-label"><span class="stat-icon" aria-hidden="true">◆</span> DIFICULDADE</span>
+                        <strong id="current-difficulty">MÉDIO</strong>
+                        <span class="stat-note">nível escolhido</span>
+                    </article>
+                </div>
+
+                <section class="journey panel" aria-label="Progresso da partida">
+                    <div class="journey-heading">
+                        <span class="journey-label"><span aria-hidden="true">🏁</span> SUA JORNADA</span>
+                        <strong id="journey-label">RODADA 01 DE 10</strong>
+                    </div>
+                    <div class="round-track" id="round-track" role="progressbar"
+                         aria-label="Rodada atual" aria-valuemin="1" aria-valuenow="1" aria-valuemax="10"></div>
+                </section>
+
+                <article class="clue-card panel" id="clue-card">
+                    <div class="card-topline">
+                        <div class="category-chip"><span class="chip-spark" aria-hidden="true">✦</span><span id="category">CATEGORIA</span></div>
+                        <span class="card-number">CARTA <b id="card-round">01</b></span>
+                    </div>
+                    <div class="clue-content">
+                        <span class="clue-label"><span class="live-dot"></span> PISTA <span id="clue-number">01</span> <span class="clue-of">DE 10</span></span>
+                        <p id="clue-text" class="clue-text">A pista aparecerá aqui.</p>
+                    </div>
+                    <div class="clue-progress" id="clue-progress" aria-label="Progresso das pistas"></div>
+                    <div class="card-footer">
+                        <span id="presenter-message" aria-live="polite">A apresentadora está pronta.</span>
+                        <span class="points-hint">ATÉ <b id="available-points">20</b> PTS / CASAS</span>
+                    </div>
+                </article>
+
+                <form id="guess-form" class="guess-form">
+                    <label class="sr-only" for="guess-input">Digite seu palpite</label>
+                    <input id="guess-input" name="guess" type="text" maxlength="120" autocomplete="off"
+                           placeholder="Digite seu palpite..." required>
+                    <button class="button button-primary guess-button" type="submit">
+                        <span>Enviar palpite</span><span aria-hidden="true">↗</span>
+                    </button>
+                </form>
+                <div class="round-actions">
+                    <button class="button button-secondary" id="next-clue-button" type="button">
+                        <span aria-hidden="true">＋</span> Revelar próxima pista
+                    </button>
+                    <button class="button button-quiet" id="give-up-button" type="button">Desistir</button>
+                </div>
+            </div>
+
+            <aside class="side-column">
+                <article class="scoreboard panel">
+                    <div class="scoreboard-heading">
+                        <span class="section-kicker" id="scoreboard-kicker">COMPETIÇÃO</span>
+                        <span class="score-icon" aria-hidden="true">♛</span>
+                    </div>
+                    <h2 id="scoreboard-title">Placar ao vivo</h2>
+                    <p id="scoreboard-description">Acertar cedo vale mais. Quem lidera?</p>
+                    <ol class="player-score-list" id="player-score-list" aria-live="polite"></ol>
+                    <div class="points-list">
+                        <div><span>1ª pista</span><b>20 <small>pts</small></b></div>
+                        <div><span>2ª pista</span><b>18 <small>pts</small></b></div>
+                        <div><span>3ª pista</span><b>16 <small>pts</small></b></div>
+                        <div><span>4ª pista</span><b>14 <small>pts</small></b></div>
+                        <div><span>5ª pista</span><b>12 <small>pts</small></b></div>
+                        <div><span>6ª pista</span><b>10 <small>pts</small></b></div>
+                        <div><span>7ª pista</span><b>8 <small>pts</small></b></div>
+                        <div><span>8ª pista</span><b>6 <small>pts</small></b></div>
+                        <div><span>9ª pista</span><b>4 <small>pts</small></b></div>
+                        <div><span>10ª pista</span><b>2 <small>pts</small></b></div>
+                    </div>
+                    <div class="scoreboard-foot"><span class="score-star">✦</span> Cada pista revela um pouco mais.</div>
+                </article>
+                <button class="new-game-link" id="restart-button" type="button">Começar outra partida <span aria-hidden="true">↗</span></button>
+            </aside>
+        </section>
+
+        <section class="results-panel panel" id="results-panel" hidden aria-live="polite">
+            <div class="celebration" aria-hidden="true" id="celebration"></div>
+            <span class="section-kicker">FIM DE JOGO</span>
+            <div class="winner-trophy" aria-hidden="true">♛</div>
+            <h2 id="winner-title">Temos um vencedor!</h2>
+            <p class="results-subtitle" id="results-subtitle">Confira o resultado da partida.</p>
+            <ol class="results-list" id="results-list"></ol>
+            <button class="button button-primary" id="results-restart-button" type="button">Jogar novamente <span aria-hidden="true">↗</span></button>
+        </section>
+
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </main>
+
+    <footer class="footer">
+        <span>PERFIL 8 <span class="footer-separator">/</span> PENSE RÁPIDO. ACERTE CEDO.</span>
+        <span>MODO SOLO OU COMPETIÇÃO PARA ATÉ 8 JOGADORES <span class="footer-star">✦</span></span>
+    </footer>
+</div>
+</body>
+</html>

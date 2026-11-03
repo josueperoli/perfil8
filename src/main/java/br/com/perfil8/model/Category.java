@@ -1,0 +1,16 @@
+package br.com.perfil8.model;
+
+public enum Category {
+    PERSONALIDADES_HISTORICAS,
+    CELEBRIDADES,
+    FILMES_E_SERIES,
+    DESENHOS_E_ANIMES,
+    GEOGRAFIA,
+    HISTORIA,
+    CIENCIA,
+    TECNOLOGIA,
+    ANIMAIS,
+    ESPORTES,
+    CULTURA_GERAL,
+    CURIOSIDADES
+}
