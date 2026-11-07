@@ -38,7 +38,7 @@ Após o deploy, a página e as rotas `/api/games` devem responder no mesmo domí
 O estado das partidas fica em memória, então partidas em andamento são perdidas
 quando a instância reinicia.
 
-Por padrão, a aplicação usa cartas locais de demonstração e não exige uma chave de API. Para ativar a geração e a avaliação de palpites com Groq, edite o arquivo `.env`:
+Por padrão, a aplicação usa cartas locais de demonstração e não exige uma chave de API. Com a IA habilitada, as pistas são geradas em português brasileiro. Para ativar a geração e a avaliação de palpites com Groq, edite o arquivo `.env`:
 
 ```dotenv
 AI_ENABLED=true

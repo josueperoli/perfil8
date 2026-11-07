@@ -30,6 +30,8 @@ class OpenAiCardProviderTest {
                         {"response_format":{"type":"json_schema","json_schema":{"name":"perfil8_card","strict":true,"schema":{"properties":{"clues":{"minItems":10,"maxItems":10},"acceptedAnswers":{"type":"array"}}}}}}
                         """, false))
                 .andExpect(content().string(containsString("clues (array de dez strings)")))
+                .andExpect(content().string(containsString("todas as dez pistas em português brasileiro")))
+                .andExpect(content().string(containsString("nunca em inglês")))
                 .andRespond(withSuccess(completion(cardJson("Segredo", "CIENCIA")), MediaType.APPLICATION_JSON));
         OpenAiCardProvider provider = new OpenAiCardProvider(
                 new OpenAiChatClient(builder.build(), new ObjectMapper(), "test-model"),
@@ -59,6 +61,58 @@ class OpenAiCardProviderTest {
         );
 
         assertThrows(AiProviderException.class, () -> provider.createCard(Difficulty.MEDIO, Set.of()));
+        server.verify();
+    }
+
+    @Test
+    void rejectsCluesWrittenInEnglish() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("https://ai.example.test/v1");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("https://ai.example.test/v1/chat/completions"))
+                .andRespond(withSuccess(completion(cardJson("Segredo", "CIENCIA")
+                        .replace("Primeira pista", "He was born in Portugal.")), MediaType.APPLICATION_JSON));
+        OpenAiCardProvider provider = new OpenAiCardProvider(
+                new OpenAiChatClient(builder.build(), new ObjectMapper(), "test-model"),
+                new ObjectMapper()
+        );
+
+        assertThrows(AiProviderException.class, () -> provider.createCard(Difficulty.MEDIO, Set.of()));
+        server.verify();
+    }
+
+    @Test
+    void rejectsCluesThatRevealAnAcceptedAnswer() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("https://ai.example.test/v1");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("https://ai.example.test/v1/chat/completions"))
+                .andRespond(withSuccess(completion(cardJson("Segredo", "CIENCIA")
+                        .replace("Primeira pista", "Também é chamado Nome alternativo.")),
+                        MediaType.APPLICATION_JSON));
+        OpenAiCardProvider provider = new OpenAiCardProvider(
+                new OpenAiChatClient(builder.build(), new ObjectMapper(), "test-model"),
+                new ObjectMapper()
+        );
+
+        assertThrows(AiProviderException.class, () -> provider.createCard(Difficulty.MEDIO, Set.of()));
+        server.verify();
+    }
+
+    @Test
+    void doesNotTreatAnswerAsRevealedWhenItAppearsInsideAnotherWord() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("https://ai.example.test/v1");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("https://ai.example.test/v1/chat/completions"))
+                .andRespond(withSuccess(completion(cardJson("Roma", "CIENCIA")
+                        .replace("Primeira pista", "O aroma da fruta é marcante.")),
+                        MediaType.APPLICATION_JSON));
+        OpenAiCardProvider provider = new OpenAiCardProvider(
+                new OpenAiChatClient(builder.build(), new ObjectMapper(), "test-model"),
+                new ObjectMapper()
+        );
+
+        var card = provider.createCard(Difficulty.MEDIO, Set.of());
+
+        assertEquals("Roma", card.answer());
         server.verify();
     }
 
