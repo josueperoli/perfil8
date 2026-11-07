@@ -18,6 +18,26 @@ cp .env.example .env
 
 Abra <http://localhost:8080>.
 
+## Publicar na Vercel
+
+O projeto inclui um `Dockerfile` para executar o Spring Boot com Java 21 no runtime
+Container da Vercel. Como a interface e a API são servidas pela mesma aplicação,
+publique o repositório inteiro usando a raiz do projeto.
+
+No projeto Vercel já existente, selecione **Container** como Framework Preset em
+**Settings → Build and Deployment** caso a Vercel não detecte o `Dockerfile`
+automaticamente. Depois, faça um novo deploy. O runtime Container está em beta
+na Vercel. A variável `PORT` é fornecida pela plataforma; a aplicação já a utiliza.
+
+Por padrão, a aplicação usa cartas de demonstração e não precisa de variáveis de
+IA. Para ativar a IA, configure `AI_ENABLED=true`, `AI_API_KEY`, `AI_BASE_URL` e
+`AI_MODEL` nas variáveis de ambiente do projeto Vercel; não envie o arquivo `.env`
+nem a chave para o Git.
+
+Após o deploy, a página e as rotas `/api/games` devem responder no mesmo domínio.
+O estado das partidas fica em memória, então partidas em andamento são perdidas
+quando a instância reinicia.
+
 Por padrão, a aplicação usa cartas locais de demonstração e não exige uma chave de API. Para ativar a geração e a avaliação de palpites com Groq, edite o arquivo `.env`:
 
 ```dotenv
