@@ -22,12 +22,17 @@ public class OpenAiCardProvider implements CardProvider {
     private static final int MAX_ALIASES = 20;
     private static final int MAX_ANSWER_LENGTH = 120;
     private static final int MAX_CLUE_LENGTH = 500;
+    private static final String ENGLISH_CLUES_ERROR = "A API de IA retornou pistas em inglês.";
     private static final Set<String> ENGLISH_CLUE_WORDS = Set.of(
             "the", "is", "are", "was", "were", "been", "being", "has", "have", "had",
             "born", "known", "with", "from", "his", "her", "their", "located", "became",
             "played", "wrote", "written", "lives", "worked", "created", "founded", "called",
-            "who", "which", "where", "first", "largest", "city", "country", "river",
-            "mountain", "author", "writer", "scientist", "president"
+            "first", "largest", "city", "country", "river", "mountain", "author", "writer",
+            "scientist", "president"
+    );
+    private static final Set<String> ENGLISH_SINGLE_WORD_CLUES = Set.of(
+            "born", "founded", "located", "became", "written", "his", "her", "their",
+            "released", "starred", "scored", "appeared", "served"
     );
 
     private final OpenAiChatClient chatClient;
@@ -40,13 +45,27 @@ public class OpenAiCardProvider implements CardProvider {
 
     @Override
     public Card createCard(Difficulty difficulty, Set<String> excludedAnswers) {
+        try {
+            return createCardAttempt(difficulty, excludedAnswers, false);
+        } catch (AiProviderException exception) {
+            if (!ENGLISH_CLUES_ERROR.equals(exception.getMessage())) {
+                throw exception;
+            }
+        }
+        return createCardAttempt(difficulty, excludedAnswers, true);
+    }
+
+    private Card createCardAttempt(Difficulty difficulty, Set<String> excludedAnswers, boolean retry) {
         JsonNode response = chatClient.completeJson(
                 """
                 Você é a apresentadora de um jogo de adivinhação brasileiro.
                 Escreva todas as pistas e todos os textos em português brasileiro, nunca em inglês.
+                %s
                 Siga estritamente o formato JSON solicitado.
-                """,
-                createPrompt(difficulty, excludedAnswers),
+                """.formatted(retry
+                        ? "A tentativa anterior gerou pistas em inglês. Gere uma nova carta e confira o idioma."
+                        : ""),
+                createPrompt(difficulty, excludedAnswers, retry),
                 0.8,
                 "perfil8_card",
                 cardSchema()
@@ -60,10 +79,10 @@ public class OpenAiCardProvider implements CardProvider {
         return validateAndBuildCard(generated, difficulty, excludedAnswers);
     }
 
-    private String createPrompt(Difficulty difficulty, Set<String> excludedAnswers) {
+    private String createPrompt(Difficulty difficulty, Set<String> excludedAnswers, boolean retry) {
         String availableCategories = Arrays.toString(Category.values());
         String exclusions = excludedAnswers.isEmpty() ? "Nenhuma" : String.join(", ", excludedAnswers);
-        return """
+        String prompt = """
                 Crie uma carta original para um jogo de adivinhação brasileiro.
                 REGRA DE IDIOMA: escreva todas as dez pistas em português brasileiro natural.
                 Nunca escreva uma pista em inglês. Não traduza nomes próprios nem títulos oficiais;
@@ -85,6 +104,9 @@ public class OpenAiCardProvider implements CardProvider {
                 answer (string), category (um dos valores permitidos), clues (array de dez strings)
                 e acceptedAnswers (array de strings).
                 """.formatted(difficulty, availableCategories, exclusions);
+        return retry
+                ? prompt + "\nA tentativa anterior falhou por estar em inglês. Escreva todas as pistas em português brasileiro."
+                : prompt;
     }
 
     private Card validateAndBuildCard(
@@ -116,11 +138,11 @@ public class OpenAiCardProvider implements CardProvider {
         secretAnswers.add(generated.answer());
         if (generated.clues().stream().anyMatch(clue -> clue == null || clue.isBlank()
                 || clue.length() > MAX_CLUE_LENGTH
-                || containsResponse(clue, secretAnswers)
-                || appearsToBeEnglish(clue))) {
-            throw new AiProviderException(
-                    "A API de IA retornou pistas inválidas, em inglês ou que revelam a resposta."
-            );
+                || containsResponse(clue, secretAnswers))) {
+            throw new AiProviderException("A API de IA retornou pistas inválidas ou que revelam a resposta.");
+        }
+        if (generated.clues().stream().anyMatch(OpenAiCardProvider::appearsToBeEnglish)) {
+            throw new AiProviderException(ENGLISH_CLUES_ERROR);
         }
 
         Set<String> acceptedAnswers = new HashSet<>(generated.acceptedAnswers());
@@ -153,9 +175,9 @@ public class OpenAiCardProvider implements CardProvider {
         List<String> words = List.of(AnswerNormalizer.normalize(clue).split(" "));
         long englishWordCount = words.stream().filter(ENGLISH_CLUE_WORDS::contains).count();
         return englishWordCount >= 2
-                || words.contains("born") && (words.contains("was") || words.contains("in"))
-                || words.contains("known") && words.contains("as")
-                || words.contains("located") && words.contains("in");
+                || words.stream().anyMatch(ENGLISH_SINGLE_WORD_CLUES::contains)
+                || words.contains("known") && (words.contains("as") || words.contains("for"))
+                || words.contains("famous") && words.contains("for");
     }
 
     private static Category parseCategory(String value) {

@@ -68,15 +68,37 @@ class OpenAiCardProviderTest {
     void rejectsCluesWrittenInEnglish() {
         RestClient.Builder builder = RestClient.builder().baseUrl("https://ai.example.test/v1");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-        server.expect(requestTo("https://ai.example.test/v1/chat/completions"))
-                .andRespond(withSuccess(completion(cardJson("Segredo", "CIENCIA")
-                        .replace("Primeira pista", "He was born in Portugal.")), MediaType.APPLICATION_JSON));
+        for (int attempt = 0; attempt < 2; attempt++) {
+            server.expect(requestTo("https://ai.example.test/v1/chat/completions"))
+                    .andRespond(withSuccess(completion(cardJson("Segredo", "CIENCIA")
+                            .replace("Primeira pista", "He was born in Portugal.")), MediaType.APPLICATION_JSON));
+        }
         OpenAiCardProvider provider = new OpenAiCardProvider(
                 new OpenAiChatClient(builder.build(), new ObjectMapper(), "test-model"),
                 new ObjectMapper()
         );
 
         assertThrows(AiProviderException.class, () -> provider.createCard(Difficulty.MEDIO, Set.of()));
+        server.verify();
+    }
+
+    @Test
+    void retriesCardGenerationWhenCluesAreInEnglish() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("https://ai.example.test/v1");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo("https://ai.example.test/v1/chat/completions"))
+                .andRespond(withSuccess(completion(cardJson("Segredo", "CIENCIA")
+                        .replace("Primeira pista", "He was born in Portugal.")), MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://ai.example.test/v1/chat/completions"))
+                .andRespond(withSuccess(completion(cardJson("Segredo", "CIENCIA")), MediaType.APPLICATION_JSON));
+        OpenAiCardProvider provider = new OpenAiCardProvider(
+                new OpenAiChatClient(builder.build(), new ObjectMapper(), "test-model"),
+                new ObjectMapper()
+        );
+
+        var card = provider.createCard(Difficulty.MEDIO, Set.of());
+
+        assertEquals(10, card.clues().size());
         server.verify();
     }
 
