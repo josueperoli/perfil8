@@ -68,18 +68,11 @@ button { color: inherit; }
 
 .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
 .brand-mark {
-    width: 38px;
-    height: 38px;
-    display: grid;
-    place-items: center;
-    border-radius: 11px;
-    color: var(--panel);
-    background: linear-gradient(145deg, var(--accent), #ed8b50);
-    box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 70%, #783c31);
-    font: 500 17px var(--font-body);
-    letter-spacing: -1px;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    filter: drop-shadow(0 3px 0 color-mix(in srgb, var(--accent) 38%, transparent));
 }
-.brand-mark span { font-size: 21px; }
 .brand-name { font: 500 14px var(--font-body); letter-spacing: 1.1px; }
 .brand-name b { color: var(--accent); }
 .topbar-controls { display: flex; align-items: center; gap: 8px; }
